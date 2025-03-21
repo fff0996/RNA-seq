@@ -46,7 +46,7 @@ contrast_matrix <- makeContrasts(
 v <- voom(data_log2, design, plot=TRUE)
 
 # Linear Model 피팅
-fit <- lmFit(expr_data_norm, design)
+fit <- lmFit(data_log_norm, design)
 fit2 <- contrasts.fit(fit, contrast.matrix)
 fit2 <- eBayes(fit2)
 
@@ -78,6 +78,16 @@ ggplot(DEG_results, aes(x=logFC, y=-log10(adj.P.Val), color=sig) +
        x = "Log2 Fold Change",
        y = "-Log10(P-value)") +
   theme_minimal()
+       
+# PCA그리기        
+pca_res <- prcomp(t(data_log_norm), scale. = TRUE)
 
+pca_df <- as.data.frame(pca_res$x)
+pca_df$Group <- group_info$APOBEC_group  # 예: "APOBEC" or "non_APOBEC"
+
+ ggplot(pca_df, aes(x = PC1, y = PC2, color = Group)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  ggtitle("PCA: APOBEC vs non-APOBEC")
 
 
