@@ -71,7 +71,7 @@ DEG_results[DEG_results$adj.P.Val < 0.05 & DEG_results$logFC < -1,]$sig <- "DOWN
 # 결과 볼테이노 플랏으로 그리기
 library(ggplot2)
 
-ggplot(DEG_results, aes(x=logFC, y=-log10(adj.P.Val), color=sig) +
+ggplot(DEG_results, aes(x=logFC, y=-log10(adj.P.Val), color=sig)) +
   geom_point(alpha = 0.8, size = 2) +
   scale_color_manual(values = c("UP" = "red", "DOWN" = "blue", "Not significance" = "gray")) +
   labs(title = "Volcano Plot of DEG Analysis",
