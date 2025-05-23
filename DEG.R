@@ -1,3 +1,38 @@
+
+
+tpm <- function(raw_counts, gene_lengths) {
+  x <- raw_counts * 1e3 / gene_lengths        # RPK
+  return(t(t(x) * 1e6 / colSums(x)))          # normalize by library size
+}
+
+
+rownames(d) <- d$Geneid
+lengths <- d$Length
+counts <- d[, 7:ncol(d), drop = FALSE]
+
+# TPM 계산
+tpm_mat <- tpm(counts, lengths)
+
+# log2(TPM + 1)
+log_tpm <- log2(tpm_mat + 1)
+
+for ( i in 1:length(m2.file.list) ){
+d <- read.table(paste("/home/fff0996/MUTATION2/RNA/",m2.file.list[i],sep=""),sep="\t",header=T)
+rownames(d) <- d$Geneid
+lengths <- d$Length
+counts <- d[, 7:ncol(d), drop = FALSE]
+tpm_mat <- tpm(counts, lengths)
+log_tpm <- log2(tpm_mat + 1)
+if(i == 1){
+df <- log_tpm
+}
+else{
+df <- cbind(df,log_tpm)
+}
+}
+
+
+
 #library(DESeq2) #raw count
 library(edgeR) 
 library(limma) #FPKM, TPM
