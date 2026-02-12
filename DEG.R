@@ -126,3 +126,21 @@ pca_df$Group <- group_info$APOBEC_group  # 예: "APOBEC" or "non_APOBEC"
   ggtitle("PCA: APOBEC vs non-APOBEC")
 
 
+
+
+
+library(GSVA)
+library(msigdbr)
+
+# gene set 가져오기 (Hallmark)
+msig <- msigdbr(species = "Homo sapiens", category = "H")
+gene_sets <- split(msig$gene_symbol, msig$gs_name)
+
+# expression matrix 만들기
+expr_mat <- as.matrix(m[, -1])
+rownames(expr_mat) <- m$gene_symbol
+
+# GSVA 실행
+gsva_res <- gsva(expr_mat, gene_sets, method = "gsva")
+# ssGSEA 하고 싶으면 method = "ssgsea"
+
