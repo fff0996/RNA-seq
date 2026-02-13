@@ -127,7 +127,7 @@ pca_df$Group <- group_info$APOBEC_group  # 예: "APOBEC" or "non_APOBEC"
 
 
 
-
+###GSVA
 
 library(GSVA)
 library(msigdbr)
@@ -144,3 +144,27 @@ rownames(expr_mat) <- m$gene_symbol
 gsva_res <- gsva(expr_mat, gene_sets, method = "gsva")
 # ssGSEA 하고 싶으면 method = "ssgsea"
 
+
+
+###GSEA
+library(clusterProfiler)
+library(msigdbr)
+
+# 1. DEG 결과에서 ranked gene list 만들기 (log2FC 기준)
+gene_list <- res$log2FoldChange
+names(gene_list) <- res$gene_symbol
+gene_list <- sort(gene_list, decreasing = TRUE)
+
+# 2. gene set 가져오기
+msig <- msigdbr(species = "Homo sapiens", category = "H")
+msig_t2g <- msig[, c("gs_name", "gene_symbol")]
+
+# 3. GSEA 실행
+gsea_res <- GSEA(geneList = gene_list,
+                 TERM2GENE = msig_t2g,
+                 pvalueCutoff = 0.05)
+
+# 4. 시각화
+dotplot(gsea_res, showCategory = 20)
+gseaplot2(gsea_res, geneSetID = 1:3)
+ridgeplot(gsea_res, showCategory = 20)
