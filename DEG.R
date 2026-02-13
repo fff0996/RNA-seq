@@ -148,41 +148,51 @@ gsva_res <- gsva(expr_mat, gene_sets, method = "gsva")
 
 ###GSEA
 library(DESeq2)
+BiocManager::install("clusterProfiler")
 library(clusterProfiler)
 library(msigdbr)
 
-# 1. count matrix 준비 (raw count, gene_symbol x samples)
-count_mat <- as.matrix(m[, -1])
-rownames(count_mat) <- m$gene_symbol
+#데이터 불러오기기
+m <- read.table("C:/R/samples_raw_count_260211.txt",sep="\t",header=T,check.names=F)
 
-# 중복 gene symbol 합치기
-count_mat <- round(count_mat)  # DESeq2는 integer 필요
+##인풋 모양으로 만들기 
 
-# 2. sample info (여기 수정)
-condition <- factor(c("shNC","shNC","shTP53","shTP53",
-                      "xeno","xeno","xeno","xeno","xeno","xeno","xeno","xeno","xeno","xeno"))
-coldata <- data.frame(condition = condition, row.names = colnames(count_mat))
+m2 <- m[,c(1:5)]
+rownames(m2) <- m2$gene_symbol
+m2$gene_symbol <- NULL
+count_mat <- as.matrix(m2)
+mode(count_mat) <- "numeric"
+# 반올림
+count_mat_int <- round(count_mat)
+storage.mode(count_mat_int) <- "integer"
 
-# 3. DESeq2
-dds <- DESeqDataSetFromMatrix(countData = count_mat,
-                              colData = coldata,
-                              design = ~ condition)
+##그룹 지정하기기
+meta <- data.frame(
+  condition = c("NC","NC","TP53","TP53"),
+  row.names = colnames(count_mat_int)
+)
+meta$condition <- factor(meta$condition, levels = c("NC","TP53"))
+
+##DEGseq분석 ㄱㄱㄱ
+dds <- DESeqDataSetFromMatrix(
+  countData = count_mat_int,
+  colData = meta,
+  design = ~ condition
+)
+
 dds <- DESeq(dds)
+res <- results(dds, contrast = c("condition","TP53","NC"))
 
-# 비교 그룹 지정 (treat vs control)
-res <- results(dds, contrast = c("condition", "shTP53", "shNC"))
+##GSEA를 돌리기 위한 인풋 만들기 
 res <- as.data.frame(res)
+res <- res[!is.na(res$log2FoldChange) & !is.na(res$pvalue), ]
 res$gene_symbol <- rownames(res)
 
-# NA 제거
-res <- res[!is.na(res$log2FoldChange) & !is.na(res$pvalue), ]
 
-# 4. ranked gene list
 gene_list <- res$log2FoldChange
 names(gene_list) <- res$gene_symbol
 gene_list <- sort(gene_list, decreasing = TRUE)
 
-# 5. gene set
 msig <- msigdbr(species = "Homo sapiens", category = "H")
 msig_t2g <- msig[, c("gs_name", "gene_symbol")]
 
@@ -191,10 +201,20 @@ gsea_res <- GSEA(geneList = gene_list,
                  TERM2GENE = msig_t2g,
                  pvalueCutoff = 0.05)
 
-# 7. 시각화
-dotplot(gsea_res, showCategory = 20)
-gseaplot2(gsea_res, geneSetID = 1:3)
-ridgeplot(gsea_res, showCategory = 20)
 
-# 8. 결과 저장
-write.csv(as.data.frame(gsea_res), "gsea_results.csv", row.names = FALSE)
+####시각화 
+BiocManager::install("enrichplot")
+library(enrichplot)
+library(ggplot)
+
+
+# 1) padj 기준으로 가장 유의한 pathway 하나 뽑기
+top_path <- gsea_res@result %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice(1) %>%
+  dplyr::pull(ID)
+
+# 2) Enrichment plot
+p <- gseaplot2(gsea_res, geneSetID = top_path, title = top_path)
+
+
